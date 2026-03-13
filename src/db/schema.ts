@@ -87,6 +87,8 @@ export interface ImportLog {
     origem: TransactionOrigin;
     importedAt: Date;
     transactionsCount: number;
+    totalValue?: number;
+    dueDate?: Date;
 }
 
 // ============== REAL-TIME / TEMPO REAL ==============
@@ -162,6 +164,9 @@ export class FinanceDatabase extends Dexie {
             realtimeTransactions: '++id, snapshot_id, source, statement_month_label, dedupe_key, uploaded_at',
             realtimeSnapshots: 'id, source, statement_month_label, uploaded_at',
         });
+
+        // v6: adds optional totalValue and dueDate to ImportLog (no index changes needed)
+        this.version(6).stores({});
     }
 }
 

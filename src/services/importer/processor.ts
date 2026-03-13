@@ -68,7 +68,7 @@ export async function processFiles(files: File[]): Promise<ImportSummary[]> {
             }
 
             let rawTransactions: (Omit<Transaction, 'id' | 'hash' | 'createdAt' | 'updatedAt' | 'importId'> & { hash?: string })[] = [];
-            let headerInfo: { dueDate?: string; totalValue?: number } = {};
+            let headerInfo: { dueDate?: Date; totalValue?: number } = {};
 
             // === BRANCH: OFX vs PDF ===
             if (file.name.toLowerCase().endsWith('.ofx')) {
@@ -96,6 +96,8 @@ export async function processFiles(files: File[]): Promise<ImportSummary[]> {
                 origem: origin,
                 importedAt: new Date(),
                 transactionsCount: 0, // Will update later
+                totalValue: headerInfo.totalValue,
+                dueDate: headerInfo.dueDate,
             });
 
             let addedCount = 0;
@@ -137,7 +139,7 @@ export async function processFiles(files: File[]): Promise<ImportSummary[]> {
                 totalTransactions: rawTransactions.length,
                 addedTransactions: addedCount,
                 skippedFile: false,
-                dueDate: headerInfo.dueDate,
+                dueDate: headerInfo.dueDate ? headerInfo.dueDate.toLocaleDateString('pt-BR') : undefined,
                 totalValue: headerInfo.totalValue,
                 firstTransaction: first ? {
                     description: first.descricaoOriginal,
@@ -162,18 +164,48 @@ export async function processFiles(files: File[]): Promise<ImportSummary[]> {
 }
 
 // Extract due date and total value from PDF header
-function extractHeaderInfo(text: string, origin: TransactionOrigin): { dueDate?: string; totalValue?: number } {
+function extractHeaderInfo(text: string, origin: TransactionOrigin): { dueDate?: Date; totalValue?: number } {
+    const MONTH_MAP: Record<string, number> = {
+        JAN: 0, FEV: 1, MAR: 2, ABR: 3, MAI: 4, JUN: 5,
+        JUL: 6, AGO: 7, SET: 8, OUT: 9, NOV: 10, DEZ: 11
+    };
+
     if (origin === 'NUBANK') {
-        // Due date: "vencimento: DD MMM" or "Data de vencimento: DD MMM YYYY"
+        // Due date: "vencimento: DD MMM YYYY"
         const dueDateMatch = text.match(/vencimento[:\s]+(\d{1,2})\s+(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\s*(\d{4})?/i);
-        // Total: "valor de R$ X.XXX,XX" or "R$ X.XXX,XX" near beginning
+        // Total: "valor de R$ X.XXX,XX"
         const totalMatch = text.match(/valor\s+(?:de\s+)?R\$\s*([\d.,]+)/i);
 
+        const dueDate = dueDateMatch
+            ? new Date(
+                parseInt(dueDateMatch[3] || String(new Date().getFullYear())),
+                MONTH_MAP[dueDateMatch[2].toUpperCase()],
+                parseInt(dueDateMatch[1])
+              )
+            : undefined;
+
         return {
-            dueDate: dueDateMatch ? `${dueDateMatch[1]} ${dueDateMatch[2].toUpperCase()} ${dueDateMatch[3] || new Date().getFullYear()}` : undefined,
+            dueDate,
             totalValue: totalMatch ? parseFloat(totalMatch[1].replace(/\./g, '').replace(',', '.')) : undefined,
         };
     }
+
+    if (origin === 'XP') {
+        // Due date: "Vencimento DD / MM / YYYY"
+        const vencMatch = text.match(/Vencimento\s*(\d{1,2})\s*\/\s*(\d{1,2})\s*\/\s*(\d{4})/i);
+        // Total: "Total a pagar" or "Total da fatura" followed by value
+        const totalMatch = text.match(/Total\s+(?:a\s+pagar|da\s+fatura)\s*(?:R\$\s*)?([\d.,]+)/i);
+
+        const dueDate = vencMatch
+            ? new Date(parseInt(vencMatch[3]), parseInt(vencMatch[2]) - 1, parseInt(vencMatch[1]))
+            : undefined;
+
+        return {
+            dueDate,
+            totalValue: totalMatch ? parseFloat(totalMatch[1].replace(/\./g, '').replace(',', '.')) : undefined,
+        };
+    }
+
     return {};
 }
 

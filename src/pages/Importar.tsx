@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { FileUp, Trash2 } from 'lucide-react';
+import { formatCurrency } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { FileDropzone } from '../components/FileDropzone';
 import { ImportSummaryModal } from '../components/ImportSummaryModal';
@@ -99,40 +100,66 @@ export function Importar() {
 
             {/* Import History */}
             {importLogs && importLogs.length > 0 && (
-                <div className="card p-6">
-                    <h3 className="text-lg font-semibold text-text-primary mb-4">
-                        Histórico de Importações
-                    </h3>
-                    <div className="space-y-2">
-                        {importLogs.map((log) => (
-                            <div
-                                key={log.id}
-                                className="flex items-center justify-between p-3 bg-surface-700/50 rounded-xl group hover:bg-surface-700 transition-colors"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <span className={`
-                    px-2 py-1 rounded text-xs font-bold
-                    ${log.origem === 'NUBANK' && 'bg-purple-500/20 text-purple-400'}
-                    ${log.origem === 'XP' && 'bg-yellow-500/20 text-yellow-400'}
-                    ${log.origem === 'ITAU' && 'bg-orange-500/20 text-orange-400'}
-                  `}>
-                                        {log.origem}
-                                    </span>
-                                    <span className="text-text-primary">{log.fileName}</span>
-                                </div>
-                                <div className="flex items-center gap-4 text-sm text-text-secondary">
-                                    <span>{log.transactionsCount} transações</span>
-                                    <span>{formatDate(log.importedAt)}</span>
-                                    <button
-                                        onClick={() => handleDeleteImport(log.id!)}
-                                        className="p-2 text-text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                                        title="Apagar importação"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+                <div className="card overflow-hidden">
+                    <div className="px-6 py-4 border-b border-surface-700">
+                        <h3 className="text-lg font-semibold text-text-primary">
+                            Histórico de Importações
+                        </h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-surface-700/50 text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                                <tr>
+                                    <th className="px-4 py-3 w-24">Origem</th>
+                                    <th className="px-4 py-3">Arquivo</th>
+                                    <th className="px-4 py-3 text-right w-28">Transações</th>
+                                    <th className="px-4 py-3 text-right w-36">Valor Total</th>
+                                    <th className="px-4 py-3 text-right w-32">Vencimento</th>
+                                    <th className="px-4 py-3 text-right w-40">Data de Importação</th>
+                                    <th className="px-4 py-3 w-12"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-surface-700/50">
+                                {importLogs.map((log) => (
+                                    <tr key={log.id} className="hover:bg-surface-700/30 transition-colors group">
+                                        <td className="px-4 py-3">
+                                            <span className={`
+                                                inline-block px-2 py-1 rounded text-xs font-bold
+                                                ${log.origem === 'NUBANK' ? 'bg-purple-500/20 text-purple-400' : ''}
+                                                ${log.origem === 'XP' ? 'bg-yellow-500/20 text-yellow-400' : ''}
+                                                ${log.origem === 'ITAU' ? 'bg-orange-500/20 text-orange-400' : ''}
+                                            `}>
+                                                {log.origem}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-text-primary max-w-[280px] truncate" title={log.fileName}>
+                                            {log.fileName}
+                                        </td>
+                                        <td className="px-4 py-3 text-right text-text-secondary">
+                                            {log.transactionsCount}
+                                        </td>
+                                        <td className="px-4 py-3 text-right font-medium text-text-primary">
+                                            {log.totalValue != null ? formatCurrency(log.totalValue) : <span className="text-text-muted">—</span>}
+                                        </td>
+                                        <td className="px-4 py-3 text-right text-text-secondary">
+                                            {log.dueDate ? new Date(log.dueDate).toLocaleDateString('pt-BR') : <span className="text-text-muted">—</span>}
+                                        </td>
+                                        <td className="px-4 py-3 text-right text-text-secondary">
+                                            {formatDate(log.importedAt)}
+                                        </td>
+                                        <td className="px-4 py-3 text-right">
+                                            <button
+                                                onClick={() => handleDeleteImport(log.id!)}
+                                                className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                                title="Apagar importação"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             )}
