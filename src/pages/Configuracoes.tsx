@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Settings as SettingsIcon, Plus, Trash2, Save, Tag, Users, FileText, Brain, RefreshCw, FolderSync } from 'lucide-react';
+import { Settings as SettingsIcon, Plus, Trash2, Save, Tag, Users, FileText, Brain, RefreshCw, FolderSync, Key, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { relearnFromHistory } from '../services/classifier/engine';
 import { migrateV2Categories } from '../services/migrations/v2_categories';
 import { toast } from 'sonner';
@@ -10,7 +10,7 @@ import { CATEGORIES } from '../constants/categories';
 import { cn } from '../lib/utils';
 import { useFileSystem } from '../hooks/useFileSystem';
 
-type Tab = 'categories' | 'rules' | 'backup';
+type Tab = 'categories' | 'rules' | 'backup' | 'ia';
 
 export function Configuracoes() {
     const [activeTab, setActiveTab] = useState<Tab>('categories');
@@ -34,6 +34,7 @@ export function Configuracoes() {
                     { id: 'categories', label: 'Categorias (Fixo)', icon: Tag },
                     { id: 'rules', label: 'Regras', icon: FileText },
                     { id: 'backup', label: 'Backup', icon: Users },
+                    { id: 'ia', label: 'Inteligência Artificial', icon: Brain },
                 ].map((tab) => (
                     <button
                         key={tab.id}
@@ -48,6 +49,7 @@ export function Configuracoes() {
             {activeTab === 'categories' && <CategoriesTab />}
             {activeTab === 'rules' && <RulesTab rules={rules || []} />}
             {activeTab === 'backup' && <BackupTab />}
+            {activeTab === 'ia' && <IaTab />}
         </div>
     );
 }
@@ -172,6 +174,121 @@ function RulesTab({ rules }: { rules: CategorizationRule[] }) {
     );
 }
 
+
+function IaTab() {
+    const [apiKey, setApiKey] = useState('');
+    const [showKey, setShowKey] = useState(false);
+    const [saved, setSaved] = useState(false);
+    const [testing, setTesting] = useState(false);
+
+    useEffect(() => {
+        db.appSettings.get('googleApiKey').then((r) => {
+            if (r?.value) setApiKey(r.value);
+        });
+    }, []);
+
+    const handleSave = async () => {
+        await db.appSettings.put({ id: 'googleApiKey', value: apiKey.trim() });
+        setSaved(true);
+        toast.success('API Key salva com sucesso!');
+        setTimeout(() => setSaved(false), 2000);
+    };
+
+    const handleTest = async () => {
+        if (!apiKey.trim()) { toast.error('Digite a API Key primeiro.'); return; }
+        setTesting(true);
+        try {
+            const res = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey.trim()}`
+            );
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            const models: { name: string }[] = data.models || [];
+            const flash = models.find((m) => m.name.toLowerCase().includes('flash'));
+            if (flash) {
+                toast.success(`Conexão OK! Modelo selecionado: ${flash.name.replace('models/', '')}`);
+            } else {
+                toast.warning('Conexão OK, mas nenhum modelo "flash" encontrado.');
+            }
+        } catch (e) {
+            toast.error(`Erro ao conectar: ${e instanceof Error ? e.message : 'Verifique a key.'}`);
+        } finally {
+            setTesting(false);
+        }
+    };
+
+    return (
+        <div className="card p-6 space-y-6">
+            <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-500/10 rounded-xl">
+                    <Brain className="w-6 h-6 text-blue-400" />
+                </div>
+                <div>
+                    <h3 className="text-lg font-semibold text-text-primary">Classificação com IA</h3>
+                    <p className="text-sm text-text-secondary">
+                        Usa o Google Gemini (free tier) para classificar transações automaticamente.
+                    </p>
+                </div>
+            </div>
+
+            <div className="space-y-4 p-4 bg-surface-700/50 rounded-xl">
+                <div>
+                    <label className="text-sm font-medium text-text-primary block mb-1.5">
+                        Google AI API Key
+                    </label>
+                    <p className="text-xs text-text-muted mb-3">
+                        Obtenha em <span className="text-primary-400">aistudio.google.com</span>. A key começa com "AIza...".
+                        É salva apenas no seu navegador (IndexedDB), nunca em servidores externos.
+                    </p>
+                    <div className="flex gap-2">
+                        <div className="relative flex-1">
+                            <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                            <input
+                                type={showKey ? 'text' : 'password'}
+                                value={apiKey}
+                                onChange={(e) => setApiKey(e.target.value)}
+                                placeholder="AIzaSy..."
+                                className="w-full pl-9 pr-10 py-2.5 bg-surface-700 border border-white/10 rounded-lg text-sm text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:border-primary-500 font-mono"
+                            />
+                            <button
+                                onClick={() => setShowKey((v) => !v)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
+                            >
+                                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                        </div>
+                        <button
+                            onClick={handleTest}
+                            disabled={testing || !apiKey.trim()}
+                            className="px-4 py-2.5 bg-surface-600 hover:bg-surface-500 disabled:opacity-50 text-text-primary rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+                        >
+                            {testing ? 'Testando...' : 'Testar'}
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={!apiKey.trim()}
+                            className="px-4 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
+                        >
+                            {saved ? <CheckCircle2 className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+                            {saved ? 'Salvo!' : 'Salvar'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl text-sm text-text-secondary space-y-1">
+                <p className="font-medium text-text-primary">Como funciona:</p>
+                <ul className="list-disc list-inside space-y-1 text-xs">
+                    <li>Na tela de Pendências, clique em <strong>"Classificar com IA"</strong></li>
+                    <li>O sistema detecta automaticamente o melhor modelo Gemini disponível na sua conta</li>
+                    <li>As transações sem categoria são enviadas em lotes de 20 para classificação</li>
+                    <li>Cada transação recebe categoria, subcategoria e confiança de 85%</li>
+                    <li>Você ainda pode revisar e corrigir os resultados na tela de Pendências</li>
+                </ul>
+            </div>
+        </div>
+    );
+}
 
 function BackupTab() {
     const { fileHandle, connectFile, saveToFile, isAutoSaving } = useFileSystem();

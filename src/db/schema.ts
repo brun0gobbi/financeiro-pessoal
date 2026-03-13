@@ -91,6 +91,11 @@ export interface ImportLog {
     dueDate?: Date;
 }
 
+export interface AppSettings {
+    id: string; // e.g. 'googleApiKey'
+    value: string;
+}
+
 // ============== REAL-TIME / TEMPO REAL ==============
 
 export type RealtimeSource = 'NUBANK_PRINT' | 'XP_PRINT' | 'ITAU_OFX_PARTIAL';
@@ -145,6 +150,7 @@ export interface RealtimeSnapshot {
 
 export class FinanceDatabase extends Dexie {
     transactions!: EntityTable<Transaction, 'id'>;
+    appSettings!: EntityTable<AppSettings, 'id'>;
     merchantMappings!: EntityTable<MerchantMapping, 'id'>;
     rules!: EntityTable<CategorizationRule, 'id'>;
     closings!: EntityTable<MonthlyClosing, 'id'>;
@@ -167,6 +173,11 @@ export class FinanceDatabase extends Dexie {
 
         // v6: adds optional totalValue and dueDate to ImportLog (no index changes needed)
         this.version(6).stores({});
+
+        // v7: adds appSettings table for storing user preferences like API keys
+        this.version(7).stores({
+            appSettings: '&id',
+        });
     }
 }
 

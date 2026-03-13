@@ -8,8 +8,12 @@ import {
     ChevronRight,
     Search,
     Filter,
-    Sparkles
+    Sparkles,
+    Brain,
+    Loader2
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { classifyWithGemini } from '../services/ai/geminiClassifier';
 import { db } from '../db/schema';
 import type { Transaction, CostCenter } from '../db/schema';
 import { CATEGORIES, getCategoryLabel, getSubcategoryLabel } from '../constants/categories';
@@ -26,6 +30,8 @@ export function Pendencias() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const [expandedId, setExpandedId] = useState<number | null>(null);
+    const [aiProgress, setAiProgress] = useState<{ processed: number; total: number; model: string } | null>(null);
+    const [aiRunning, setAiRunning] = useState(false);
 
     // Get pending transactions
     const pendingTransactions = useLiveQuery(
@@ -156,8 +162,37 @@ export function Pendencias() {
         }
     };
 
+    const classifyWithAI = async () => {
+        // Classify selected transactions, or all without category if none selected
+        const toClassify = selectedIds.size > 0
+            ? (pendingTransactions || []).filter(t => selectedIds.has(t.id!))
+            : (pendingTransactions || []).filter(t => !t.categoriaMacro);
+
+        if (toClassify.length === 0) {
+            toast.info('Nenhuma transação sem categoria para classificar.');
+            return;
+        }
+
+        setAiRunning(true);
+        setAiProgress({ processed: 0, total: toClassify.length, model: '...' });
+
+        try {
+            const { classified, errors } = await classifyWithGemini(toClassify, (p) => {
+                setAiProgress(p);
+            });
+            toast.success(`IA classificou ${classified} transações!${errors > 0 ? ` (${errors} com erro)` : ''}`);
+            setSelectedIds(new Set());
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Erro na classificação com IA.');
+        } finally {
+            setAiRunning(false);
+            setAiProgress(null);
+        }
+    };
+
     const pendingCount = pendingTransactions?.length || 0;
     const preCategorizedCount = (pendingTransactions || []).filter(t => !!t.categoriaMacro).length;
+    const uncategorizedCount = (pendingTransactions || []).filter(t => !t.categoriaMacro).length;
 
     return (
         <div className="space-y-6 animate-fade-in pb-20">
@@ -176,16 +211,53 @@ export function Pendencias() {
                         </p>
                     </div>
                 </div>
-                {preCategorizedCount > 0 && (
-                    <button
-                        onClick={approvePreCategorized}
-                        className="btn-primary flex items-center gap-2"
-                    >
-                        <Sparkles className="w-4 h-4" />
-                        Aprovar {preCategorizedCount} Pré-categorizadas
-                    </button>
-                )}
+                <div className="flex items-center gap-2">
+                    {uncategorizedCount > 0 && (
+                        <button
+                            onClick={classifyWithAI}
+                            disabled={aiRunning}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg text-sm font-medium transition-colors"
+                        >
+                            {aiRunning
+                                ? <Loader2 className="w-4 h-4 animate-spin" />
+                                : <Brain className="w-4 h-4" />}
+                            {aiRunning
+                                ? `Classificando... ${aiProgress?.processed || 0}/${aiProgress?.total || 0}`
+                                : `Classificar com IA (${selectedIds.size > 0 ? selectedIds.size : uncategorizedCount})`}
+                        </button>
+                    )}
+                    {preCategorizedCount > 0 && (
+                        <button
+                            onClick={approvePreCategorized}
+                            className="btn-primary flex items-center gap-2"
+                        >
+                            <Sparkles className="w-4 h-4" />
+                            Aprovar {preCategorizedCount} Pré-categorizadas
+                        </button>
+                    )}
+                </div>
             </div>
+
+            {/* AI Progress Bar */}
+            {aiProgress && (
+                <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                        <span className="text-blue-400 font-medium flex items-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Classificando com {aiProgress.model}...
+                        </span>
+                        <span className="text-text-secondary">
+                            {aiProgress.processed} / {aiProgress.total}
+                        </span>
+                    </div>
+                    <div className="w-full bg-surface-700 rounded-full h-2">
+                        <div
+                            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${aiProgress.total > 0 ? (aiProgress.processed / aiProgress.total) * 100 : 0}%` }}
+                        />
+                    </div>
+                </div>
+            )}
 
             {/* Filters & Search */}
             <div className="flex flex-wrap items-center gap-4">
