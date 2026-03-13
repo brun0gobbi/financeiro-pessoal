@@ -1,0 +1,210 @@
+@import "tailwindcss";
+
+@theme {
+  /* Color Palette - Light & Clean Finance Theme */
+  --color-primary-50: oklch(0.97 0.02 250);
+  --color-primary-100: oklch(0.94 0.04 250);
+  --color-primary-200: oklch(0.88 0.08 250);
+  --color-primary-300: oklch(0.78 0.12 250);
+  --color-primary-400: oklch(0.65 0.16 250);
+  --color-primary-500: oklch(0.55 0.18 250);
+  --color-primary-600: oklch(0.48 0.18 250);
+  --color-primary-700: oklch(0.40 0.16 250);
+  --color-primary-800: oklch(0.35 0.12 250);
+  --color-primary-900: oklch(0.28 0.08 250);
+
+  /* Accent Colors - Softer for Light Theme */
+  --color-accent: oklch(0.65 0.16 170);
+  --color-accent-dark: oklch(0.55 0.14 170);
+  --color-warning: oklch(0.75 0.15 70);
+  --color-danger: oklch(0.60 0.20 25);
+  --color-success: oklch(0.62 0.16 155);
+
+  /* Light Theme Surfaces */
+  --color-surface-50: oklch(0.99 0 0);
+  --color-surface-100: oklch(0.97 0.005 250);
+  --color-surface-200: oklch(0.94 0.008 250);
+  --color-surface-300: oklch(0.90 0.01 250);
+  --color-surface-400: oklch(0.85 0.01 250);
+
+  /* Semantic surface aliases for light theme */
+  --color-surface-900: oklch(0.97 0.005 250);
+  --color-surface-800: oklch(0.99 0 0);
+  --color-surface-700: oklch(0.94 0.008 250);
+  --color-surface-600: oklch(0.90 0.01 250);
+
+  /* Dark Text for Light Theme */
+  --color-text-primary: oklch(0.20 0.01 250);
+  --color-text-secondary: oklch(0.40 0.01 250);
+  --color-text-muted: oklch(0.55 0.01 250);
+
+  /* Category Colors - Vibrant but Refined */
+  --color-cat-moradia: oklch(0.58 0.18 25);
+  --color-cat-mercado: oklch(0.60 0.16 145);
+  --color-cat-alimentacao: oklch(0.70 0.16 65);
+  --color-cat-transporte: oklch(0.55 0.18 250);
+  --color-cat-saude: oklch(0.60 0.18 340);
+  --color-cat-assinaturas: oklch(0.60 0.16 290);
+  --color-cat-compras: oklch(0.58 0.14 200);
+  --color-cat-viagens: oklch(0.55 0.18 180);
+  --color-cat-impostos: oklch(0.50 0.10 30);
+  --color-cat-investimentos: oklch(0.60 0.18 120);
+
+  /* Shadows - Soft for Light Theme */
+  --shadow-card: 0 2px 12px -2px oklch(0.55 0.02 250 / 0.08), 0 4px 24px -4px oklch(0.55 0.02 250 / 0.05);
+  --shadow-glow: 0 4px 20px oklch(0.55 0.18 250 / 0.15);
+  --shadow-hover: 0 8px 32px -4px oklch(0.55 0.02 250 / 0.12);
+
+  /* Font */
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+/* Base Styles */
+html {
+  font-family: var(--font-sans);
+  background-color: var(--color-surface-100);
+  color: var(--color-text-primary);
+}
+
+body {
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(135deg, var(--color-surface-100) 0%, var(--color-surface-200) 100%);
+}
+
+/* Scrollbar Styling - Light */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-surface-200);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-400);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-400);
+}
+
+/* Utility Classes */
+@layer utilities {
+  .glass {
+    background: oklch(1 0 0 / 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid oklch(0.55 0.02 250 / 0.1);
+  }
+
+  .card {
+    background: var(--color-surface-800);
+    border-radius: 16px;
+    border: 1px solid oklch(0.55 0.02 250 / 0.08);
+    box-shadow: var(--shadow-card);
+  }
+
+  .card-hover {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .card-hover:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--color-primary-300);
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600));
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px oklch(0.55 0.18 250 / 0.25);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+
+  .btn-secondary {
+    background: var(--color-surface-800);
+    color: var(--color-text-primary);
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 500;
+    border: 1px solid oklch(0.55 0.02 250 / 0.15);
+    transition: all 0.2s ease;
+  }
+
+  .btn-secondary:hover {
+    background: var(--color-surface-200);
+    border-color: var(--color-primary-300);
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, var(--color-primary-500), var(--color-accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-slide-in {
+    animation: slideIn 0.4s ease-out;
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateX(-16px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* Input Styling for Light Theme */
+  input,
+  select,
+  textarea {
+    background: var(--color-surface-800) !important;
+    border-color: oklch(0.55 0.02 250 / 0.15) !important;
+    color: var(--color-text-primary) !important;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    border-color: var(--color-primary-400) !important;
+    outline: none;
+    box-shadow: 0 0 0 3px oklch(0.55 0.18 250 / 0.1);
+  }
+}
